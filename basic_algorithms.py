@@ -1,3 +1,4 @@
+import math
 """ algorithms """
 
 # ==Сортировка слиянием (Merge Sort)==
@@ -134,3 +135,21 @@ def gcd(a, b):
 def lcm(a, b):
     """Returns LCM of a and b"""
     return abs(a * b) // gcd(a, b)
+
+
+# теорема Пифагора для нахождения гипотенузы, прилежащего и противоположного катетов 
+
+class Trigonometry:
+    """ Pythagorean theorem for hypotenuse (c), leg (b) and leg(a) """
+
+    def hypot(self, a, b):
+        """ Solve for hypotenuse """
+        return math.sqrt(a**2 + b ** 2)
+    
+    def leg_b(self, a, c):
+        """ Solve for leg b """
+        return math.sqrt(c ** 2 - a ** 2)
+    
+    def leg_a(self, b, c):
+        """ Solve for leg a """
+        return math.sqrt(c ** 2 - b ** 2)
