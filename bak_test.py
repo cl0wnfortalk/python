@@ -2,7 +2,6 @@ import asyncio
 import datetime
 import logging 
 from psycopg import AsyncConnection
-# import psycopg2 
 from os import getenv
 from dotenv import load_dotenv
 from telegram import Update 
@@ -71,21 +70,18 @@ instruction = '''
 app = ApplicationBuilder().token(tg_api).build()
 
 
-async def start(update:Update, 
-                context:ContextTypes.DEFAULT_TYPE):
-    context.user_data["count"] = 5
+async def start(update:Update, context:ContextTypes.DEFAULT_TYPE):
+    context.user_data["count"] = 1 #1
     context.user_data["answers"] = 0
     await update.message.reply_text(instruction)
-    # return QU
     return await get_question(update, context)
 
-async def get_question(update:Update, 
-                       context:ContextTypes.DEFAULT_TYPE):
+async def get_question(update:Update, context:ContextTypes.DEFAULT_TYPE):
     # connecting to database 
     conn = await AsyncConnection.connect(f"dbname=postgres user=postgres password={pg_pswd} host=localhost")
     context.user_data["conn"] = conn
     count = context.user_data.get("count")
-    context.user_data["count"] -= 1
+    context.user_data["count"] += 1
     # getting groups of questions one by one
     if (conn):
         async with conn.cursor() as curs:
@@ -101,7 +97,7 @@ async def wait_answer(update:Update, context:ContextTypes.DEFAULT_TYPE):
     count = context.user_data.get("count")
     if count >= 0 and user_response.isdigit():
         context.user_data["answers"] += int(user_response)
-        if count == 0:
+        if count == 22:
             result = context.user_data["answers"]
             await update.message.reply_text(f"Ваш результат: {result}")
             return await get_results(update, context)
@@ -137,6 +133,13 @@ async def get_results(update:Update, context:ContextTypes.DEFAULT_TYPE):
         res_fetched = await curs.fetchall()
         if res_fetched:
             await update.message.reply_text(f"Ваш результат : {res_fetched[0][0]} {emoji}")
+            await curs.execute(f"SELECT rec FROM recomendations WHERE rgroup={res_id};")
+            rec_fetched = await curs.fetchall()
+            if rec_fetched:
+                recs = "\n\n".join([f"✅ {row[0]}" for row in rec_fetched])
+                await update.message.reply_text(f"Рекомендации:\n {recs}")
+                await conn.close()
+                return ConversationHandler.END
         else:
             await update.message.reply_text("Ошибка.")
 
