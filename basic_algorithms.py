@@ -153,3 +153,139 @@ class Trigonometry:
     def leg_a(self, b, c):
         """ Solve for leg a """
         return math.sqrt(c ** 2 - b ** 2)
+
+# Многоалфавитные подстановки - базовая криптография
+
+import re
+
+class CipherMatrix:
+
+    """Реализация многоалфавитных подстановок
+    Для замены символов исходного текста используется 
+    не один, а несколько алфавитов. Алфавиты 
+    для замены образованы из символов исходного 
+    алфавита, записанных в другом порядке."""
+
+    __langs = {
+        "ru":list('АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'),
+        "en":list('ABCDEFGHIJKLMNOPQRSTUVWXYZ'),
+    }
+
+    def __lang_protection(self, text, lang):
+        if not re.fullmatch(r'[А-Я]', text) and re.fullmatch(r'[A-Z]', text):
+            raise self.CipherMatrixException(f"Строка '{text}' не соответствует {lang} либо использован нижний регистр")
+
+    class CipherMatrixException(Exception):
+        """Кастомное исключение для CipherMatrix"""
+        pass
+
+    @classmethod
+    def __get_cipher_matrix(self, key:str, lang="ru"):
+
+        """Возвращает список строк алфавита
+        В первой строке матрицы записывают буквы в 
+        порядке очередности их в исходном алфавите, 
+        во второй — ту же последовательность букв, 
+        но с циклическим сдвигом влево на одну позицию, 
+        в третьей — со сдвигом на две позиции"""
+
+        if not isinstance(key, str):
+            raise TypeError(f"key argument must be string, not {type(key)}")
+
+        if len(key) == 0:
+            raise ValueError("Empty key found")
+
+        if len(key) < 3:
+            print("Предупреждение: оптимальная длина ключа должна превышать 2 символа")
+            is_ok = str(input("'Y' чтобы продолжить: ")).lower()
+            if is_ok != "y":
+                return None
+                        
+        al = self.__langs.get(lang) if self.__langs.get(lang) else None 
+
+        if al is None:
+            raise self.CipherMatrixException(f"Only {self.__langs.keys()} are allowed, not {lang}")
+            
+        mtrx = ["".join(al)]
+
+        for char in key:
+            try:
+                char_index = al.index(char) 
+            except ValueError:
+                raise self.CipherMatrixException(f"'{char}' отсутствует в заданном алфавите - {lang}")
+            mtrx.append("".join(al[char_index:] + al[:char_index]))
+        return mtrx
+
+    @classmethod
+    def encode_with_mtrx(self, text:str, key:str, textlang="ru"):
+
+        """Шифрование тескста через матрицу шифрования по ключу"""
+
+        if not isinstance(text, str):
+            raise TypeError(f"text argument must be string but {type(text)} is used")
+
+        if len(text) == 0:
+            raise ValueError("text argument should not be empty")
+        
+        self.__lang_protection(self, text, textlang)
+        
+        cipher_table = self.__get_cipher_matrix(key, textlang)
+
+        al = self.__langs.get(textlang)
+        count = 0
+        secret = ""
+        for char in text:
+            if char == " ": 
+                secret += " "
+                continue
+            try:
+                index = al.index(char)
+            except ValueError:
+                raise self.CipherMatrixException(f"'{char}' отсутствует в заданном алфавите - {textlang}")
+            letter = cipher_table[1:][count][index]
+            count += 1
+            if count >= len(cipher_table[1:]):
+                count = 0
+            secret += letter
+        return secret
+    
+    @classmethod
+    def decode_with_mtrx(self, cipher:str, key:str, textlang:str):
+        
+        """Дешифрование зашифрованного текста с ключом"""
+
+        if not isinstance(cipher, str):
+            raise TypeError(f"text argument must be string but {type(cipher)} is used")
+
+        if len(cipher) == 0:
+            raise ValueError("text argument should not be empty")
+        
+        self.__lang_protection(self, cipher, textlang)
+
+        
+        cipher_table = self.__get_cipher_matrix(key, textlang)
+
+        al = self.__langs.get(textlang)
+        count = 0
+        nonsecret = ""
+        for char in cipher:
+            if char == " ": 
+                nonsecret += " "
+                continue
+            index = cipher_table[1:][count].index(char)
+            try:
+                letter = al[index]
+            except ValueError:
+                raise self.CipherMatrixException(f"'{char}' отсутствует в заданном алфавите - {textlang}")
+            count += 1
+            if count >= len(cipher_table[1:]):
+                count = 0
+            nonsecret += letter
+        return nonsecret
+
+
+
+secret = CipherMatrix.encode_with_mtrx("PROTECTION", "WINTER", "en")
+nonsecret = CipherMatrix.decode_with_mtrx(secret, "WINTER", "en")
+print(secret)
+print(nonsecret)
